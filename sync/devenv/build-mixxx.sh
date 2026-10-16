@@ -5,7 +5,7 @@
 # override with MIXXX_DIR. The first run downloads the Mixxx dependency
 # environment (~1.5 GB) into $MIXXX_DIR/buildenv.
 #
-# Usage: sync/devenv/build-mixxx.sh [--tests]
+# Usage: sync/devenv/build-mixxx.sh [--tests] [TARGET]   (e.g. mixxx-test)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -13,7 +13,11 @@ MIXXX_DIR="${MIXXX_DIR:-$(cd "$HERE/../../../mixxx" && pwd)}"
 BUILD_DIR="${BUILD_DIR:-$MIXXX_DIR/build}"
 
 BUILD_TESTS=OFF
-[[ "${1:-}" == "--tests" ]] && BUILD_TESTS=ON
+if [[ "${1:-}" == "--tests" ]]; then
+    BUILD_TESTS=ON
+    shift
+fi
+TARGET="${1:-}"
 
 cd "$MIXXX_DIR"
 # The buildenv script must be sourced; it exports MIXXX_VCPKG_ROOT etc.
@@ -29,5 +33,5 @@ cmake -S "$MIXXX_DIR" -B "$BUILD_DIR" -G Ninja \
     -DBUILD_TESTING="$BUILD_TESTS" \
     -DQML=OFF
 
-cmake --build "$BUILD_DIR" --parallel
-echo "Built: $BUILD_DIR/mixxx"
+cmake --build "$BUILD_DIR" --parallel ${TARGET:+--target "$TARGET"}
+echo "Built: $BUILD_DIR/${TARGET:-mixxx}"
