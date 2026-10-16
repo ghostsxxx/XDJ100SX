@@ -70,9 +70,25 @@ offsetMs       = offsetBeats * 60000 / localBpm
 If the BPMs differ by more than a small threshold, the offset drifts, so the UI
 shows the BPM difference (and drift direction) rather than a stable ms value.
 
-Clock alignment: periodic ping/pong per peer, keep the samples with the lowest
-round-trip time, estimate offset and drift. Exposed as a quality value so the UI
-can grey out.
+Clock alignment: ping each peer every 250 ms, keep the last 8 samples (2 s) and
+use the one with the lowest round trip; its half round trip is the worst-case
+error, exposed so the UI can grey out. Over 2 s crystal drift (< 100 ppm) stays
+below 0.2 ms, so no drift model in v1.
+
+## Implementation status (mixxx fork, `src/xdjsync/`)
+
+| Part | File | Status |
+|---|---|---|
+| Phase/offset math | `beatphase.*` | done, tested |
+| Packet codec (State/Ping/Pong, v1, ~52 B state) | `packet.*` | done, tested |
+| Clock offset estimator | `clockestimator.*` | done, tested |
+| UDP transport, peer table, controls | | todo |
+| Engine snapshot at DAC time | | todo |
+| Skin indicator | | todo |
+
+Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
+(`util/fpclassify.h`), never `std::isfinite`, and don't build NaN/Inf
+constants in code or tests.
 
 ## Mixxx integration points (2.6)
 
