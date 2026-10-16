@@ -27,7 +27,7 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D5 | Phase is reported at **output (DAC) time**, not engine buffer time: each player adds its own output latency. | Players with different buffer sizes would otherwise show 0 ms while being audibly apart. |
 | D6 | UI: one large indicator against a single reference player, next to the BPM display. | Small 1024×600-ish screen; matches how Pioneer shows it. |
 | D7 | Reference player = the player in MASTER mode. If none is master and exactly one other player is playing, that one. Otherwise no indicator. | Unambiguous; same mental model as Pioneer. |
-| D8 | Transport: UDP broadcast for state/discovery, UDP unicast for clock ping/pong. Versioned binary packet. | Multicast is unreliable on cheap switches and Pi WiFi. Binary keeps packets small at 50–100 Hz. |
+| D8 | Transport: everything is UDP broadcast (port 51760), versioned binary packets. A ping is answered by every peer with a pong addressed by player id. | Multicast is unreliable on cheap switches and Pi WiFi. Unicast reaches only one of several players on the same machine (SO_REUSEPORT). Binary keeps packets small at 50 Hz. |
 | D9 | Feature off by default, enabled in preferences; player ID from preferences, default = hostname. | Upstream-friendly, no surprise network traffic. |
 | D10 | LAN only, no authentication. | DJ booth network; accepted risk. |
 
@@ -82,8 +82,9 @@ below 0.2 ms, so no drift model in v1.
 | Phase/offset math | `beatphase.*` | done, tested |
 | Packet codec (State/Ping/Pong, v1, ~52 B state) | `packet.*` | done, tested |
 | Clock offset estimator | `clockestimator.*` | done, tested |
-| UDP transport, peer table, controls | | todo |
-| Engine snapshot at DAC time | | todo |
+| Peer table, reference choice (D7), timeout | `peertable.*` | done, tested |
+| UDP transport on own thread, `[XdjSync]` controls | `xdjsyncservice.*` | done, verified against simulator |
+| Engine snapshot at DAC time | | todo: phase sampled on the network thread for now |
 | Skin indicator | | todo |
 
 Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
@@ -99,8 +100,10 @@ constants in code or tests.
 - `src/soundio/sounddeviceportaudio.cpp`: knows stream output latency (D5);
   PortAudio's per-callback `timeInfo` is currently unused and could give exact
   DAC times.
-- New controls for the skin, e.g. `[XdjSync],ref_offset_ms`, `ref_bpm_delta`,
-  `ref_present`, `ref_quality`, `sync_mode`.
+- `[XdjSync]` controls: `enabled`, `sync_mode` (0 free, 1 bpm, 2 beat,
+  3 master; settable), `peer_count`, `ref_present`, `ref_offset_valid`,
+  `ref_offset_ms`, `ref_bpm`, `ref_bpm_delta`, `ref_drifting`,
+  `ref_clock_uncertainty_ms`.
 - XDJ100SX skin (`mixxx/SKIN/XDJ100SX/deck.xml`): indicator next to `DeckBPM`.
 
 ## Test harness (on the Mac, no hardware)
@@ -112,7 +115,8 @@ Lives in this repo under `sync/`:
 | `sync/devenv/build-mixxx.sh` | Builds the Mixxx fork with unit tests. |
 | `sync/devenv/players.sh` | Starts N virtual players: separate Mixxx instances with their own settings folder, XDJ100SX skin, test library. |
 | `sync/testdata/` | Generated click tracks with exactly known BPM and first-beat position (ground truth). |
-| `sync/sim/` (later) | Python peer simulator (BPM, phase, jitter, loss, clock skew/drift) and packet sniffer. |
+| `sync/devenv/set_cfg.py` | Sets keys in a player's `mixxx.cfg` (used by `players.sh`). |
+| `sync/sim/xdjsim.py` | `players`: virtual players (BPM, phase, mode, clock skew, jitter, loss, paused). `monitor`: independent view of all players and offsets. `selftest`. |
 
 Test levels:
 
@@ -127,6 +131,10 @@ Test levels:
 6. Pi performance: xruns and CPU with feature on/off.
 
 ## Open questions
+
+- Half/double tempo: Mixxx analyzes a 174 BPM track as 87 BPM with default
+  settings. Compare phase modulo tempo ratio 2 (Pioneer-like), or require
+  matching BPM ranges? Dev tracks use 128 BPM until decided.
 
 - Packet rate: 50 or 100 Hz on a Pi 3B+ over WiFi?
 - Pitch-bend/jog nudges: how fast must the indicator react vs. how much to smooth?
