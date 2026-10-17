@@ -156,6 +156,15 @@
             </control>
             
             <control>
+                <group>[XdjSync]</group>
+                <key>XDJ100SX.syncToggle</key>
+                <description>SYNC (network sync; test harness only, not on the hardware)</description>
+                <status>0x90</status>
+                <midino>0x4A</midino>
+                <options>
+                <script-binding/></options>
+            </control>
+            <control>
                 <group>[Channel1]</group>
                 <key>XDJ100SX.loadTrack</key>
                 <description>LOAD</description>

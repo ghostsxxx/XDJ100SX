@@ -275,6 +275,61 @@ def follower_nudge(run):
     run.wait(6)
 
 
+def player_bpm(run):
+    state = run.mon.states.get(PLAYER)
+    return state[0]["bpm"] if state else None
+
+
+def set_fader(run, rate):
+    """Pitch fader to Mixxx rate -1..1 (14-bit, as the XDJ100SX sends it)."""
+    full = max(0, min(16383, round(8192 - rate * 8192)))
+    run.midi(f"B0 00 {full >> 7:02X}\nB0 20 {full & 0x7F:02X}")
+
+
+def bpm_trace(run, seconds, action=None):
+    """Samples player1's BPM every 50 ms while running action(step)."""
+    trace = []
+    steps = int(seconds / 0.05)
+    for i in range(steps):
+        if action:
+            action(i, steps)
+        run.wait(0.05)
+        trace.append(player_bpm(run))
+    return [b for b in trace if b is not None]
+
+
+def describe(name, trace):
+    steps = [abs(b - a) for a, b in zip(trace, trace[1:])]
+    print(f"  {name:<34} BPM {min(trace):7.3f} .. {max(trace):7.3f}   "
+          f"largest step {max(steps) if steps else 0:6.3f}")
+
+
+@scenario
+def pitch_takeover(run):
+    """Pitch fader: ignored while following, soft takeover after SYNC off.
+
+    The fader moves like a real one (through every position); the BPM trace
+    is continuous across phases, so a jump between phases shows too."""
+    run.master.set_bpm(131.0)
+    set_fader(run, 0.0)
+    run.wait(3)
+    trace = [player_bpm(run)]
+
+    def phase(name, seconds, action=None):
+        part = bpm_trace(run, seconds, action)
+        describe(name, [trace[-1]] + part)
+        trace.extend(part)
+
+    phase("synced, fader 0 -> +0.5", 2.0, lambda i, n: set_fader(run, 0.5 * (i + 1) / n))
+    run.midi("90 4A 7F\n80 4A 00")  # SYNC off
+    phase("SYNC off, fader untouched", 2.0)
+    phase("fader +0.5 -> -1 (takeover)", 6.0, lambda i, n: set_fader(run, 0.5 - 1.5 * (i + 1) / n))
+    phase("fader -1 -> +1", 6.0, lambda i, n: set_fader(run, -1.0 + 2.0 * (i + 1) / n))
+    run.midi("90 4A 7F\n80 4A 00")  # SYNC on
+    phase("SYNC on again", 3.0)
+    run.master.set_bpm(128.0)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--only", nargs="*", default=None)

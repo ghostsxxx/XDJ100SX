@@ -376,7 +376,43 @@ XDJ100SX.pitch = function (channel, control, value, status, group) {
     // Convertir a rang de Mixxx (-1.0 .. +1.0)
     var normalized = - (full - 8192) / 8192;
 
+    // Network sync: while following a master the fader is ignored (sync owns
+    // the tempo, like a CDJ). Afterwards (SYNC off, or this player became
+    // master) the fader takes over only once it reaches the current tempo,
+    // so the tempo never jumps to wherever the fader was left.
+    var following = engine.getValue("[XdjSync]", "sync") > 0 &&
+        engine.getValue("[XdjSync]", "master") === 0 &&
+        engine.getValue("[XdjSync]", "ref_present") > 0;
+    if (following) {
+        XDJ100SX.pitchLocked = true;
+        XDJ100SX.pitchLastFader = normalized;
+        return;
+    }
+    if (XDJ100SX.pitchLocked) {
+        var current = engine.getValue(group, "rate");
+        var reached = Math.abs(normalized - current) <= XDJ100SX.pitchTakeoverThreshold ||
+            (XDJ100SX.pitchLastFader - current) * (normalized - current) < 0;
+        XDJ100SX.pitchLastFader = normalized;
+        if (!reached) {
+            return;
+        }
+        XDJ100SX.pitchLocked = false;
+    }
+
     engine.setValue(group, "rate", normalized);
+};
+
+// Pitch fader takeover after network sync (see XDJ100SX.pitch).
+XDJ100SX.pitchLocked = false;
+XDJ100SX.pitchLastFader = 0;
+XDJ100SX.pitchTakeoverThreshold = 0.01;
+
+// Network sync SYNC on/off. Not on the hardware (SYNC is on the touchscreen);
+// lets the test harness toggle it via MIDI note 0x4A.
+XDJ100SX.syncToggle = function (channel, control, value) {
+    if (value > 0) {
+        script.toggleControl("[XdjSync]", "sync");
+    }
 };
 
 
