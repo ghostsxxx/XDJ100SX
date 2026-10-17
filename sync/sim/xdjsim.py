@@ -337,7 +337,8 @@ class Monitor:
             clock = f"clock {est[0] / 1e6:+10.3f} ms ±{est[1] / 2e6:.3f}" if est else "clock  -"
             bar = f"beat {state['beat_index'] % 4 + 1}" if state["beat_index_valid"] else "beat -"
             cue = state["cue_countdown"]
-            cue_s = f"cue {math.ceil(cue - 1e-6) // 4}.{math.ceil(cue - 1e-6) % 4}" if cue is not None else "cue -"
+            n = math.ceil(cue - 1e-6) if cue is not None else 0
+            cue_s = f"cue {(n - 1) // 4:02d}.{(n - 1) % 4 + 1}" if n > 0 else "cue -"
             lines.append(f"{pid:>10} {'play' if state['playing'] else 'stop'} "
                          f"{state['playing_for'] / 1e9:7.1f} s "
                          f"{state['bpm']:8.3f} BPM mode {state['mode']} {bar} {cue_s}  {clock}")

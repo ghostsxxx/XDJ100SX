@@ -4,6 +4,7 @@
 # apply on restart) and the click-track test library.
 #
 # Usage: sync/devenv/players.sh [N]        start N players (default 2)
+#        SCREEN_SIZE=800x480 sync/devenv/players.sh   other window content size
 #        sync/devenv/players.sh stop       stop all players started here
 #        sync/devenv/players.sh reset      stop and delete all player settings
 #
@@ -53,9 +54,12 @@ for i in $(seq 1 "$count"); do
     fi
     # Odd players get the high click, even the low one, so flams are audible.
     track="$TRACKS_DIR/click_128_00_$([[ $((i % 2)) == 1 ]] && echo high || echo low).wav"
+    # Window content = the device screen (5" HDMI, 1024x600). The track must
+    # come before -qwindowgeometry: Mixxx takes the first positional argument
+    # as deck 1's file, and Qt's option value would otherwise be that.
     "$MIXXX_BIN" --settings-path "$dir" --resource-path "$MIXXX_DIR/res" --developer --log-level debug --log-flush-level debug \
-        -qwindowgeometry "800x480+$((40 + (i - 1) * 60))+$((40 + (i - 1) * 60))" \
-        "$track" > "$dir/stdout.log" 2>&1 &
+        "$track" -qwindowgeometry "${SCREEN_SIZE:-1024x600}+$((40 + (i - 1) * 60))+$((40 + (i - 1) * 60))" \
+        > "$dir/stdout.log" 2>&1 &
     echo $! > "$dir/mixxx.pid"
     echo "started player$i (pid $!), settings: $dir"
 done
