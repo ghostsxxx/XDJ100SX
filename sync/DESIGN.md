@@ -41,6 +41,7 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D20 | "BAR 1" touch button re-anchors the loaded track's grid by whole beats so the beat nearest the play position is bar beat 1; saved with the grid. Constant-tempo grids only. | Mixxx's analyzer doesn't detect downbeats (on the click track it anchored on the 2nd beat). |
 | D21 | Cue countdown: bars.beat (CDJ-style: remaining beats rounded up, beat counts 4-3-2-1 within the bar, e.g. 64 beats = 15.4, last beat = 00.1) to the next **hot cue** ahead; own and the reference's (sent as beats at `atDac`, appended field, projected on the receiver). Main cue, intro/outro and sound markers are ignored. | Phrase mixing: see how far away the next drop is on both decks. Main cue etc. sit at the track start in Mixxx. |
 | D22 | UI = CDJ-3000-style beat lanes (`<XdjBeatLanes>`, native widget `WXdjBeatLanes`): master lane on top, own lane below, one time axis around a shared playhead, beat ticks, numbered bars, red hot cue flags, fixed-width bars.beat countdown per lane; SYNC/MASTER right; BAR 1 next to Q. Replaces the separate bar meter, phase slider, ms readout and countdown row. Master sends up to 8 hot cues (16 beats behind to ahead) for its lane (appended field). | One picture for phase, beat-in-bar and tempo offset (ticks not lining up); numbers don't jump. Design: claude.ai artifact "XDJ100SX Sync Panel". |
+| D23 | Phase correction Mixxx-style (replaces D17's jumps): one beat jump only when sync engages (SYNC on, play start, a different master); afterwards tempo only: trim = −offset / 1 s, max ±5 % (full 5 % beyond 0.2 beat); deadband 0.5 ms. Same master back after a network drop: caught up by tempo. A DJ nudge on the follower (jog via `[XdjSync],nudge` from the controller script, or `rate_temp_*`) is kept as an intentional in-beat offset until sync engages again. | How Mixxx syncs its own decks (verified in `BpmControl::calcSyncAdjustment`); CDJs and Traktor also jump only on engage. No audible jumps from network blips or master nudges. |
 | D13 | Skin: slim phase strip under the waveform: center-zero meter (right = ahead, edges = ±½ beat), green when in sync, orange otherwise, offset in ms. | Readable at a glance like Pioneer's phase meter; fits the 800×480 screen. |
 
 ## Non-functional requirements
@@ -178,19 +179,23 @@ phase.
 
 | Scenario | worst | at end | beat jumps |
 |---|---|---|---|
-| steady | 0.07 ms | 0.04 ms | – |
-| master tempo ramp 128→132→128 | 1.0 ms | 0.5 ms | – |
-| master tempo jump ±3 BPM | 1.2 ms | 0.5 ms | – |
-| master nudge 8 ms | 8.6 ms | 0.9 ms | – (trim) |
-| master nudge 40 ms | 40.5 ms | 0.02 ms | 1 (snap) |
-| network drop 0.5 s | 0.03 ms | 0.02 ms | – |
-| drop 3 s, master changes tempo meanwhile | 32 ms | 0.5 ms | 1 on reconnect |
-| drop 5 s, reconnect 25 ms off | 25.5 ms | 0.1 ms | 1 on reconnect |
+| steady | 0.04 ms | 0.01 ms | – |
+| master tempo ramp 128→132→128 | 0.6 ms | 0.5 ms | – |
+| master tempo jump ±3 BPM | 1.4 ms | 0.5 ms | – |
+| master nudge 8 ms | 8.7 ms | 0.5 ms | – |
+| master nudge 40 ms | 41.7 ms | 0.5 ms | – |
+| network drop 0.5 s | 0.5 ms | 0.5 ms | – |
+| drop 3 s, master changes tempo meanwhile | 31.5 ms | 0.5 ms | – |
+| drop 5 s, reconnect 25 ms off | 26.0 ms | 0.6 ms | – |
 | 8 ms jitter, 20 % loss | 0.6 ms | 0.4 ms | – |
+| DJ nudges the follower (jog) | 25.5 ms | 18.0 ms (kept) | – |
+
+(D23 behavior. Before it, master nudges > 20 ms and reconnects caused one
+jump each.)
 
 Wrong beat in the bar: never. During a drop longer than 1 s the follower
 elects itself master (still playing at the last tempo); on reconnect the
-longest-playing player wins again and the follower snaps back.
+longest-playing player wins again and the follower catches up by tempo.
 
 ## Backlog
 

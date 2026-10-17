@@ -46,6 +46,8 @@ XDJ100SX.nudgeWheelTurn = function (channel, control, value, status, group) {
     } else {
         engine.setValue(group, 'jog', newValue); // Pitch bend
         XDJ100SX.JogWheelEnabled = true;
+        // Tell network sync the DJ nudges: the new phase is kept, not corrected.
+        engine.setValue("[XdjSync]", "nudge", (engine.getValue("[XdjSync]", "nudge") + 1) % 1000);
     }
 
     

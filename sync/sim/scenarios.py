@@ -266,6 +266,15 @@ def wifi_jitter_loss(run):
     run.wait(2)
 
 
+@scenario
+def follower_nudge(run):
+    """The DJ nudges player1 with the jog wheel: the new offset must stay."""
+    for _ in range(3):
+        run.midi("B1 14 44")  # jog +4, a light touch
+        run.wait(0.02)
+    run.wait(6)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--only", nargs="*", default=None)
