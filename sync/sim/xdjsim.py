@@ -206,8 +206,13 @@ class VirtualPlayer:
         return now_ns() + self.skew_ns
 
     def beats(self, t_ns):
-        """Beat position at player time t; beats are phase_ms later than t=0."""
-        return (t_ns - self.skew_ns) / 1e9 * self.bpm / 60.0 - self.phase_ms / (60000.0 / self.bpm)
+        """Beat position at player time t, counted from the track start (the
+        moment the virtual player started playing); phase_ms shifts the beats
+        later. Aligned to whole beats of the local clock, so players with the
+        same phase_ms are in phase."""
+        start_beats = math.floor((self.playing_since_ns) / 1e9 * self.bpm / 60.0)
+        return ((t_ns - self.skew_ns) / 1e9 * self.bpm / 60.0 - start_beats
+                - self.phase_ms / (60000.0 / self.bpm))
 
     def state(self):
         t = self.clock()

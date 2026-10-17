@@ -54,6 +54,7 @@ for i in $(seq 1 "$count"); do
     # Odd players get the high click, even the low one, so flams are audible.
     track="$TRACKS_DIR/click_128_00_$([[ $((i % 2)) == 1 ]] && echo high || echo low).wav"
     "$MIXXX_BIN" --settings-path "$dir" --resource-path "$MIXXX_DIR/res" --developer --log-level debug --log-flush-level debug \
+        -qwindowgeometry "800x480+$((40 + (i - 1) * 60))+$((40 + (i - 1) * 60))" \
         "$track" > "$dir/stdout.log" 2>&1 &
     echo $! > "$dir/mixxx.pid"
     echo "started player$i (pid $!), settings: $dir"

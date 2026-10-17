@@ -7,12 +7,12 @@
   <WidgetGroup>
     <ObjectName>SyncPanel</ObjectName>
     <Layout>horizontal</Layout>
-    <Size>me,84f</Size>
+    <Size>me,76f</Size>
     <Children>
 
       <XdjBeatLanes>
         <ObjectName>BeatLanes</ObjectName>
-        <Size>me,84f</Size>
+        <Size>me,76f</Size>
       </XdjBeatLanes>
 
       <!-- SYNC: touch to toggle. MASTER: lit while this player is the
@@ -20,11 +20,11 @@
       <WidgetGroup>
         <ObjectName>SyncButtons</ObjectName>
         <Layout>horizontal</Layout>
-        <Size>168f,84f</Size>
+        <Size>176f,76f</Size>
         <Children>
           <PushButton>
             <ObjectName>SyncButton</ObjectName>
-            <Size>68f,44f</Size>
+            <Size>72f,44f</Size>
             <NumberStates>2</NumberStates>
             <State><Number>0</Number><Text>SYNC</Text></State>
             <State><Number>1</Number><Text>SYNC</Text></State>
@@ -34,7 +34,7 @@
           </PushButton>
           <PushButton>
             <ObjectName>MasterIndicator</ObjectName>
-            <Size>80f,44f</Size>
+            <Size>88f,44f</Size>
             <NumberStates>2</NumberStates>
             <State><Number>0</Number><Text>MASTER</Text></State>
             <State><Number>1</Number><Text>MASTER</Text></State>
