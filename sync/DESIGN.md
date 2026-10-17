@@ -87,7 +87,7 @@ below 0.2 ms, so no drift model in v1.
 | Clock offset estimator | `clockestimator.*` | done, tested |
 | Peer table, reference choice (D7), timeout | `peertable.*` | done, tested |
 | UDP transport on own thread, `[XdjSync]` controls | `xdjsyncservice.*` | done, verified against simulator |
-| Engine snapshot at DAC time | | todo: phase sampled on the network thread for now |
+| Engine phase snapshot at DAC time (D5) | `enginephase.*`, hooks in `sounddeviceportaudio.cpp`, `enginemixer.cpp` | done, tested; playing accuracy not yet measured |
 | Skin phase strip | XDJ100SX `phasemeter.xml`, `images/phase/` | done, not yet checked visually |
 
 Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
@@ -109,6 +109,21 @@ constants in code or tests.
   `ref_bpm_delta`, `ref_drifting`, `ref_clock_uncertainty_ms`. Always present;
   networking only runs if enabled.
 - XDJ100SX skin (`mixxx/SKIN/XDJ100SX/deck.xml`): indicator next to `DeckBPM`.
+
+## Phase timing (D5)
+
+- Audio callback entry (clock reference device): Mixxx's validated
+  "callback entry → DAC" delay (also used by the waveforms, with CPU-timer
+  fallback for bad driver timestamps) gives when the buffer's first sample is
+  heard.
+- `beat_distance` is updated in `EngineBuffer::postProcess()` for the play
+  position after the rendered buffer, so it is heard one buffer later:
+  `atDac = firstSampleAtDac + bufferDuration`.
+- After `EngineMixer::processChannels()` Channel1's play/bpm/beat_distance are
+  published lock-free (`ControlValueAtomic`); the network thread reads the
+  latest. Older than 500 ms (audio stopped) → fallback to controls sampled
+  on the network thread.
+- `XdjSyncService` is deleted after `SoundManager` (no audio callbacks left).
 
 ## Test harness (on the Mac, no hardware)
 
