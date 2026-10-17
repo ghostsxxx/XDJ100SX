@@ -7,20 +7,31 @@
   <WidgetGroup>
     <ObjectName>PhaseStrip</ObjectName>
     <Layout>horizontal</Layout>
-    <Size>me,20f</Size>
+    <Size>me,30f</Size>
     <Children>
 
-      <!-- Sync mode; click cycles. Hardware buttons will map to the same control. -->
+      <!-- SYNC: touch to toggle. MASTER: lit while this player is the
+           automatic master (longest playing), not pressable. -->
       <PushButton>
-        <ObjectName>SyncModeButton</ObjectName>
-        <Size>60f,18f</Size>
-        <NumberStates>4</NumberStates>
-        <State><Number>0</Number><Text>FREE</Text></State>
-        <State><Number>1</Number><Text>BPM</Text></State>
-        <State><Number>2</Number><Text>BEAT</Text></State>
-        <State><Number>3</Number><Text>MASTER</Text></State>
+        <ObjectName>SyncButton</ObjectName>
+        <Size>64f,28f</Size>
+        <NumberStates>2</NumberStates>
+        <State><Number>0</Number><Text>SYNC</Text></State>
+        <State><Number>1</Number><Text>SYNC</Text></State>
         <Connection>
-          <ConfigKey>[XdjSync],sync_mode</ConfigKey>
+          <ConfigKey>[XdjSync],sync</ConfigKey>
+        </Connection>
+      </PushButton>
+
+      <PushButton>
+        <ObjectName>MasterIndicator</ObjectName>
+        <Size>72f,28f</Size>
+        <NumberStates>2</NumberStates>
+        <State><Number>0</Number><Text>MASTER</Text></State>
+        <State><Number>1</Number><Text>MASTER</Text></State>
+        <Connection>
+          <ConfigKey>[XdjSync],master</ConfigKey>
+          <ConnectValueFromWidget>false</ConnectValueFromWidget>
         </Connection>
       </PushButton>
 

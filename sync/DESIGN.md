@@ -26,7 +26,7 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D4 | Clock alignment between players via our own ping/pong exchange in the protocol (NTP-style, four timestamps, min-RTT filtering, drift estimate). | Zero config; no dependency on chrony/NTP setup of the OS image. |
 | D5 | Phase is reported at **output (DAC) time**, not engine buffer time: each player adds its own output latency. | Players with different buffer sizes would otherwise show 0 ms while being audibly apart. |
 | D6 | UI: one large indicator against a single reference player, next to the BPM display. | Small 1024×600-ish screen; matches how Pioneer shows it. |
-| D7 | Reference player = the player in MASTER mode. If none is master and exactly one other player is playing, that one. Otherwise no indicator. | Unambiguous; same mental model as Pioneer. |
+| D7 | ~~Reference = player in MASTER mode, else the only playing player.~~ Replaced by D18. | |
 | D8 | Transport: everything is UDP broadcast (port 51760), versioned binary packets. A ping is answered by every peer with a pong addressed by player id. | Multicast is unreliable on cheap switches and Pi WiFi. Unicast reaches only one of several players on the same machine (SO_REUSEPORT). Binary keeps packets small at 50 Hz. |
 | D9 | Feature off by default, enabled in preferences; player ID from preferences, default = hostname. | Upstream-friendly, no surprise network traffic. |
 | D10 | LAN only, no authentication. | DJ booth network; accepted risk. |
@@ -34,8 +34,9 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D12 | "In sync" = offset ≤ 5 ms and not drifting. | Well below an audible flam (~10 ms), margin for display accuracy. |
 | D14 | Tempo sync (v2): in BPM or BEAT mode the network thread sets `[Channel1],bpm` to the reference BPM whenever they differ by ≥ 0.0005 BPM; Mixxx turns it into a rate change. Not via Mixxx's sync engine. | Mixxx's sync only aligns phase with quantize on, so it can't separate tempo-only from beat sync. Revisit for v3. |
 | D15 | While following, the pitch fader is overridden, and the tempo may go beyond the pitch range. | Same as Pioneer sync and Mixxx's own sync. |
-| D16 | `sync_mode` is persistent; skin has a mode button cycling FREE/BPM/BEAT/MASTER (hardware buttons later map to the same control). | Usable and testable before the hardware exists. |
+| D16 | SYNC is one on/off toggle on the touchscreen (`[XdjSync],sync`, persistent); MASTER is a lit indicator (`[XdjSync],master`), not a button. No hardware mapping (all CDJ-100S buttons are in use). Sync type via config `[XdjSync] SyncType` = `beat` (default) or `bpm`. | Like Pioneer CDJs: press SYNC, master is automatic. The XDJ100SX screen is a touchscreen. |
 | D17 | Beat sync (v3), BEAT mode, only while both play and clock uncertainty ≤ 5 ms: offset > 20 ms → fractional `beatjump` by −offset (≤ every 500 ms); 0.5–20 ms → tempo trim `ref × (1 − offset_s / 2 s)`, max ±0.5 %; < 0.5 ms → exact reference tempo. In-sync indicator ignores the trim's tempo difference. | Snap like Pioneer when engaging; smooth, inaudible correction after. Not via Mixxx's sync engine (D14). Beat jump inside an active loop moves the loop (Mixxx behavior). |
+| D18 | Automatic master: the player (any mode) that has been playing longest with a known tempo. Start time on each player's clock = arrival time − `playingFor` (state packet field, appended). Starts within 100 ms count as simultaneous → lowest player id. Master stops or disappears → next-longest player takes over. | Every player computes the same master from shared state, no voting. Stable: changes only when the master stops; the new master already runs at the old master's tempo. |
 | D13 | Skin: slim phase strip under the waveform: center-zero meter (right = ahead, edges = ±½ beat), green when in sync, orange otherwise, offset in ms. | Readable at a glance like Pioneer's phase meter; fits the 800×480 screen. |
 
 ## Non-functional requirements
@@ -92,6 +93,7 @@ below 0.2 ms, so no drift model in v1.
 | Peer table, reference choice (D7), timeout | `peertable.*` | done, tested |
 | UDP transport on own thread, `[XdjSync]` controls | `xdjsyncservice.*` | done, verified against simulator |
 | Engine phase snapshot at DAC time (D5) | `enginephase.*`, hooks in `sounddeviceportaudio.cpp`, `enginemixer.cpp` | done, tested; playing on one Mac: offset jitter 0.01–0.02 ms std dev, consistent with independent monitor (±0.03 ms). Audible accuracy not yet measured. |
+| Automatic master + SYNC toggle (D16, D18) | `peertable.*`, skin `SyncButton`/`MasterIndicator` | done, tested; verified handover between two simulated players |
 | Tempo sync (v2, BPM mode) | `tempofollow.*` | done, tested; follows master tempo changes (verified 128 → 130.5 → 124 → 150) |
 | Beat sync (v3, BEAT mode) | `phasefollower.*` | done, tested; verified vs simulator: −175 ms snap → 0 in < 1 s; 10 ms trimmed with ~2 s time constant to ≤ 0.5 ms; 60 ms snap → −0.02 ms |
 | Audible accuracy | `sync/devenv/measure_audible.sh` | measured on the Mac (2 Mixxx → BlackHole, 48 kHz, 512-frame buffers): one player in BEAT following the other, audible offset −0.38 ms median (worst 1.0 ms) while the display shows −0.02 ms |
@@ -110,11 +112,10 @@ constants in code or tests.
 - `src/soundio/sounddeviceportaudio.cpp`: knows stream output latency (D5);
   PortAudio's per-callback `timeInfo` is currently unused and could give exact
   DAC times.
-- `[XdjSync]` controls: `enabled`, `sync_mode` (0 free, 1 bpm, 2 beat,
-  3 master; settable), `peer_count`, `ref_present`, `ref_offset_valid`,
+- `[XdjSync]` controls: `enabled`, `sync` (toggle, persistent), `master`, `peer_count`, `ref_present`, `ref_offset_valid`,
   `ref_offset_ms`, `ref_phase` (0..1, 0.5 = aligned), `ref_in_sync`, `ref_bpm`,
   `ref_bpm_delta`, `ref_drifting`, `ref_clock_uncertainty_ms`. Always present;
-  networking only runs if enabled. `sync_mode` is persistent.
+  networking only runs if enabled.
 - XDJ100SX skin (`mixxx/SKIN/XDJ100SX/deck.xml`): indicator next to `DeckBPM`.
 
 ## Phase timing (D5)

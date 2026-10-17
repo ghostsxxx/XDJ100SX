@@ -692,20 +692,21 @@ font-size:25px;
   qproperty-alignment: 'AlignRight | AlignVCenter';
 }
 
-#SyncModeButton {
-  font-size: 10px;
-  margin-right: 8px;
-  color: #9a9aa6;
+#SyncButton,
+#MasterIndicator {
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 6px;
+  color: #5a5a66;
   border-color: #5a5a66;
 }
 
-#SyncModeButton[displayValue="1"],
-#SyncModeButton[displayValue="2"] {
+#SyncButton[displayValue="1"] {
   color: #6ee128;
   border-color: #6ee128;
 }
 
-#SyncModeButton[displayValue="3"] {
+#MasterIndicator[displayValue="1"] {
   color: #eb870f;
   border-color: #eb870f;
 }

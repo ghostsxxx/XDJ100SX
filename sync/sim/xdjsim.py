@@ -14,7 +14,8 @@ Examples:
   xdjsim.py selftest
 
 Player spec: ID:BPM[:PHASE_MS[:MODE]], PHASE_MS shifts the beats later
-(behind), MODE is free|bpm|beat|master.
+(behind), MODE is free|bpm|beat|master (informational; the master is the
+longest-playing player, see --playing-for-s).
 """
 import argparse
 import heapq
@@ -45,10 +46,11 @@ def _id(player_id):
     return struct.pack("<B", len(raw)) + raw
 
 
-def encode_state(pid, seq, playing, mode, bpm, beat_distance, beat_index, at_dac_ns):
+def encode_state(pid, seq, playing, mode, bpm, beat_distance, beat_index, at_dac_ns,
+                 playing_for_ns=0):
     return (MAGIC + struct.pack("<BB", VERSION, T_STATE) + _id(pid) +
-            struct.pack("<IBBddqq", seq, 1 if playing else 0, mode, bpm,
-                        beat_distance, beat_index, at_dac_ns))
+            struct.pack("<IBBddqqq", seq, 1 if playing else 0, mode, bpm,
+                        beat_distance, beat_index, at_dac_ns, playing_for_ns))
 
 
 def encode_ping(pid, seq, sent_ns):
@@ -84,10 +86,13 @@ def decode(data):
         pid = read_id()
         if ptype == T_STATE:
             seq, flags, mode, bpm, bd, bi, at = struct.unpack_from("<IBBddqq", data, off)
+            off += struct.calcsize("<IBBddqq")
+            playing_for = struct.unpack_from("<q", data, off)[0] if len(data) >= off + 8 else 0
             if not (math.isfinite(bpm) and bpm >= 0 and math.isfinite(bd)) or mode > 3:
                 return None
             return T_STATE, dict(id=pid, seq=seq, playing=bool(flags & 1), mode=mode,
-                                 bpm=bpm, beat_distance=bd, beat_index=bi, at_dac=at)
+                                 bpm=bpm, beat_distance=bd, beat_index=bi, at_dac=at,
+                                 playing_for=playing_for)
         if ptype == T_PING:
             seq, sent = struct.unpack_from("<Iq", data, off)
             return T_PING, dict(id=pid, seq=seq, sent=sent)
@@ -186,6 +191,7 @@ class VirtualPlayer:
         self.skew_ns = int(skew_ms * 1e6)
         self.playing = True
         self.seq = 0
+        self.playing_since_ns = now_ns()
 
     def clock(self):
         return now_ns() + self.skew_ns
@@ -201,17 +207,19 @@ class VirtualPlayer:
             t = self.skew_ns
         b = self.beats(t)
         self.seq += 1
+        playing_for = now_ns() - self.playing_since_ns if self.playing else 0
         return encode_state(self.id, self.seq, self.playing, self.mode, self.bpm,
-                            b - math.floor(b), math.floor(b), t)
+                            b - math.floor(b), math.floor(b), t, playing_for)
 
 
 def run_players(specs, port, broadcast, skew_ms, jitter_ms, loss, duration=None, quiet=False,
-                paused=False):
+                paused=False, playing_for_s=0.0):
     sock = make_socket(port)
     sched = Scheduler(sock)
     players = [VirtualPlayer(s, skew_ms * i) for i, s in enumerate(specs)]
     for p in players:
         p.playing = not paused
+        p.playing_since_ns -= int(playing_for_s * 1e9)
     ids = {p.id: p for p in players}
 
     def send(data):
@@ -301,6 +309,7 @@ class Monitor:
             est = self.clocks.get(pid, Clock()).estimate()
             clock = f"clock {est[0] / 1e6:+10.3f} ms ±{est[1] / 2e6:.3f}" if est else "clock  -"
             lines.append(f"{pid:>10} {'play' if state['playing'] else 'stop'} "
+                         f"{state['playing_for'] / 1e9:7.1f} s "
                          f"{state['bpm']:8.3f} BPM mode {state['mode']}  {clock}")
         for (a, b), ms in sorted(self.offsets().items()):
             lines.append(f"{a:>10} vs {b:<10} {ms:+8.2f} ms")
@@ -365,6 +374,8 @@ def main():
                    help="clock skew per player (player i gets i*skew)")
     p.add_argument("--jitter-ms", type=float, default=0.0, help="random send delay 0..N ms")
     p.add_argument("--loss", type=float, default=0.0, help="packet loss 0..1")
+    p.add_argument("--playing-for-s", type=float, default=0.0,
+                   help="pretend the players started this long ago (automatic master)")
     p.add_argument("--paused", action="store_true",
                    help="players paused at their phase (static offsets, for cross-checks)")
     sub.add_parser("monitor")
@@ -372,7 +383,7 @@ def main():
     args = ap.parse_args()
     if args.cmd == "players":
         run_players(args.player, args.port, args.broadcast, args.skew_ms, args.jitter_ms, args.loss,
-                    paused=args.paused)
+                    paused=args.paused, playing_for_s=args.playing_for_s)
     elif args.cmd == "monitor":
         run_monitor(args.port, args.broadcast)
     else:
