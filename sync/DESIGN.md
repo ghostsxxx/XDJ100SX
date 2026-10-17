@@ -35,6 +35,7 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D14 | Tempo sync (v2): in BPM or BEAT mode the network thread sets `[Channel1],bpm` to the reference BPM whenever they differ by ≥ 0.0005 BPM; Mixxx turns it into a rate change. Not via Mixxx's sync engine. | Mixxx's sync only aligns phase with quantize on, so it can't separate tempo-only from beat sync. Revisit for v3. |
 | D15 | While following, the pitch fader is overridden, and the tempo may go beyond the pitch range. | Same as Pioneer sync and Mixxx's own sync. |
 | D16 | `sync_mode` is persistent; skin has a mode button cycling FREE/BPM/BEAT/MASTER (hardware buttons later map to the same control). | Usable and testable before the hardware exists. |
+| D17 | Beat sync (v3), BEAT mode, only while both play and clock uncertainty ≤ 5 ms: offset > 20 ms → fractional `beatjump` by −offset (≤ every 500 ms); 0.5–20 ms → tempo trim `ref × (1 − offset_s / 2 s)`, max ±0.5 %; < 0.5 ms → exact reference tempo. In-sync indicator ignores the trim's tempo difference. | Snap like Pioneer when engaging; smooth, inaudible correction after. Not via Mixxx's sync engine (D14). Beat jump inside an active loop moves the loop (Mixxx behavior). |
 | D13 | Skin: slim phase strip under the waveform: center-zero meter (right = ahead, edges = ±½ beat), green when in sync, orange otherwise, offset in ms. | Readable at a glance like Pioneer's phase meter; fits the 800×480 screen. |
 
 ## Non-functional requirements
@@ -92,6 +93,7 @@ below 0.2 ms, so no drift model in v1.
 | UDP transport on own thread, `[XdjSync]` controls | `xdjsyncservice.*` | done, verified against simulator |
 | Engine phase snapshot at DAC time (D5) | `enginephase.*`, hooks in `sounddeviceportaudio.cpp`, `enginemixer.cpp` | done, tested; playing on one Mac: offset jitter 0.01–0.02 ms std dev, consistent with independent monitor (±0.03 ms). Audible accuracy not yet measured. |
 | Tempo sync (v2, BPM mode) | `tempofollow.*` | done, tested; follows master tempo changes (verified 128 → 130.5 → 124 → 150) |
+| Beat sync (v3, BEAT mode) | `phasefollower.*` | done, tested; verified vs simulator: −175 ms snap → 0 in < 1 s; 10 ms trimmed with ~2 s time constant to ≤ 0.5 ms; 60 ms snap → −0.02 ms |
 | Skin phase strip | XDJ100SX `phasemeter.xml`, `images/phase/` | done, checked visually; mode button added |
 
 Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
