@@ -169,6 +169,29 @@ Test levels:
    measure onset offset, compare with display.
 6. Pi performance: xruns and CPU with feature on/off.
 
+## Robustness (scenario runs on the Mac)
+
+`HARNESS=1 sync/devenv/players.sh 1` + `sync/sim/scenarios.py`: player1 in
+BEAT sync (driven by a virtual MIDI device with the XDJ100SX mapping) follows
+an in-process simulated master; offset measured against the master's true
+phase.
+
+| Scenario | worst | at end | beat jumps |
+|---|---|---|---|
+| steady | 0.07 ms | 0.04 ms | – |
+| master tempo ramp 128→132→128 | 1.0 ms | 0.5 ms | – |
+| master tempo jump ±3 BPM | 1.2 ms | 0.5 ms | – |
+| master nudge 8 ms | 8.6 ms | 0.9 ms | – (trim) |
+| master nudge 40 ms | 40.5 ms | 0.02 ms | 1 (snap) |
+| network drop 0.5 s | 0.03 ms | 0.02 ms | – |
+| drop 3 s, master changes tempo meanwhile | 32 ms | 0.5 ms | 1 on reconnect |
+| drop 5 s, reconnect 25 ms off | 25.5 ms | 0.1 ms | 1 on reconnect |
+| 8 ms jitter, 20 % loss | 0.6 ms | 0.4 ms | – |
+
+Wrong beat in the bar: never. During a drop longer than 1 s the follower
+elects itself master (still playing at the last tempo); on reconnect the
+longest-playing player wins again and the follower snaps back.
+
 ## Backlog
 
 - Choose which cue the countdown counts to (not always the next one).

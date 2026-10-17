@@ -5,6 +5,10 @@
 #
 # Usage: sync/devenv/players.sh [N]        start N players (default 2)
 #        SCREEN_SIZE=800x480 sync/devenv/players.sh   other window content size
+#        HARNESS=1 sync/devenv/players.sh [N]          each player also gets a
+#            virtual MIDI device ("XDJ Harness <i>") with the XDJ100SX
+#            mapping; write hex MIDI lines to <player dir>/midi.fifo
+#            (e.g. "90 3C 7F" = PLAY)
 #        sync/devenv/players.sh stop       stop all players started here
 #        sync/devenv/players.sh reset      stop and delete all player settings
 #
@@ -20,6 +24,11 @@ PLAYERS_DIR="${PLAYERS_DIR:-$XDJ_DIR/../.xdj-players}"
 TRACKS_DIR="$XDJ_DIR/sync/testdata/tracks"
 
 stop_players() {
+    for pidfile in "$PLAYERS_DIR"/player*/midi.pid; do
+        [[ -f "$pidfile" ]] || continue
+        kill "$(cat "$pidfile")" 2>/dev/null || true
+        rm -f "$pidfile"
+    done
     for pidfile in "$PLAYERS_DIR"/player*/mixxx.pid; do
         [[ -f "$pidfile" ]] || continue
         pid="$(cat "$pidfile")"
@@ -48,6 +57,23 @@ for i in $(seq 1 "$count"); do
         Library RescanOnStartup 1 \
         XdjSync Enabled 1 \
         XdjSync PlayerId "player$i"
+    if [[ "${HARNESS:-0}" == 1 ]]; then
+        device="XDJ Harness $i"
+        python3 -I "$HERE/set_cfg.py" "$dir/mixxx.cfg" \
+            Controller "${device// /_}" 1 \
+            ControllerPreset "${device// /_}" "$XDJ_DIR/mixxx/MIDI/XDJ100SX.midi.xml"
+        if ! { [[ -f "$dir/midi.pid" ]] && kill -0 "$(cat "$dir/midi.pid")" 2>/dev/null; }; then
+            rm -f "$dir/midi.fifo"
+            mkfifo "$dir/midi.fifo"
+            swift "$HERE/midi_harness.swift" "$device" "$dir/midi.fifo" > "$dir/midi.log" 2>&1 &
+            echo $! > "$dir/midi.pid"
+            # The device must exist before Mixxx enumerates MIDI devices.
+            for _ in $(seq 1 60); do
+                grep -q "ready" "$dir/midi.log" 2>/dev/null && break
+                sleep 0.5
+            done
+        fi
+    fi
     if [[ -f "$dir/mixxx.pid" ]] && kill -0 "$(cat "$dir/mixxx.pid")" 2>/dev/null; then
         echo "player$i already running"
         continue
