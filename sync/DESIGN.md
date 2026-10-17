@@ -94,6 +94,7 @@ below 0.2 ms, so no drift model in v1.
 | Engine phase snapshot at DAC time (D5) | `enginephase.*`, hooks in `sounddeviceportaudio.cpp`, `enginemixer.cpp` | done, tested; playing on one Mac: offset jitter 0.01–0.02 ms std dev, consistent with independent monitor (±0.03 ms). Audible accuracy not yet measured. |
 | Tempo sync (v2, BPM mode) | `tempofollow.*` | done, tested; follows master tempo changes (verified 128 → 130.5 → 124 → 150) |
 | Beat sync (v3, BEAT mode) | `phasefollower.*` | done, tested; verified vs simulator: −175 ms snap → 0 in < 1 s; 10 ms trimmed with ~2 s time constant to ≤ 0.5 ms; 60 ms snap → −0.02 ms |
+| Audible accuracy | `sync/devenv/measure_audible.sh` | measured on the Mac (2 Mixxx → BlackHole, 48 kHz, 512-frame buffers): one player in BEAT following the other, audible offset −0.38 ms median (worst 1.0 ms) while the display shows −0.02 ms |
 | Skin phase strip | XDJ100SX `phasemeter.xml`, `images/phase/` | done, checked visually; mode button added |
 
 Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
@@ -118,10 +119,13 @@ constants in code or tests.
 
 ## Phase timing (D5)
 
-- Audio callback entry (clock reference device): Mixxx's validated
-  "callback entry → DAC" delay (also used by the waveforms, with CPU-timer
-  fallback for bad driver timestamps) gives when the buffer's first sample is
-  heard.
+- Audio callback entry (clock reference device): the driver's own
+  "callback → DAC" delay (PortAudio `outputBufferDacTime - currentTime`) gives
+  when the buffer's first sample is heard; Mixxx's waveform estimate only as
+  fallback when that is implausible (≤ 0 or ≥ 1 s). Mixxx's estimate rejects
+  driver timestamps on CPU-timer jitter (seen with CoreAudio/BlackHole) and
+  then guesses within two buffers, differently per process: measured 18.9 ms
+  display error before this fix.
 - `beat_distance` is updated in `EngineBuffer::postProcess()` for the play
   position after the rendered buffer, so it is heard one buffer later:
   `atDac = firstSampleAtDac + bufferDuration`.
@@ -141,6 +145,9 @@ Lives in this repo under `sync/`:
 | `sync/devenv/players.sh` | Starts N virtual players: separate Mixxx instances with their own settings folder, XDJ100SX skin, test library. |
 | `sync/testdata/` | Generated click tracks with exactly known BPM and first-beat position (ground truth). |
 | `sync/devenv/set_cfg.py` | Sets keys in a player's `mixxx.cfg` (used by `players.sh`). |
+| `sync/devenv/measure_audible.sh` | Records both players via a loopback device (BlackHole) and compares the audible click offset with the displayed one. |
+| `sync/testdata/record_device.swift` | Gap-free recording of an input device (ffmpeg's avfoundation input dropped ~11 % of the audio). |
+| `sync/testdata/measure_offset.py` | Click offset between the high and low click tracks by matched filtering; `--selftest` (error ≤ 0.06 ms). |
 | `sync/sim/xdjsim.py` | `players`: virtual players (BPM, phase, mode, clock skew, jitter, loss, paused). `monitor`: independent view of all players and offsets. `selftest`. |
 
 Test levels:
