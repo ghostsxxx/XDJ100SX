@@ -47,12 +47,16 @@ def _id(player_id):
 
 
 def encode_state(pid, seq, playing, mode, bpm, beat_distance, beat_index, at_dac_ns,
-                 playing_for_ns=0, beat_index_valid=False, cue_countdown_beats=None):
+                 playing_for_ns=0, beat_index_valid=False, cue_countdown_beats=None,
+                 upcoming_cues=()):
+    """upcoming_cues: (hot cue number, beats ahead) pairs, at most 8."""
     flags = (1 if playing else 0) | (2 if beat_index_valid else 0)
+    cues = struct.pack("<B", len(upcoming_cues)) + b"".join(
+        struct.pack("<Bd", number, ahead) for number, ahead in upcoming_cues)
     return (MAGIC + struct.pack("<BB", VERSION, T_STATE) + _id(pid) +
             struct.pack("<IBBddqqqd", seq, flags, mode, bpm, beat_distance, beat_index,
                         at_dac_ns, playing_for_ns,
-                        -1.0 if cue_countdown_beats is None else cue_countdown_beats))
+                        -1.0 if cue_countdown_beats is None else cue_countdown_beats) + cues)
 
 
 def encode_ping(pid, seq, sent_ns):
@@ -214,11 +218,19 @@ class VirtualPlayer:
         self.seq += 1
         playing_for = now_ns() - self.playing_since_ns if self.playing else 0
         cue = None
+        upcoming = []
         if self.cue_every_bars:
             every = 4 * self.cue_every_bars
             cue = (math.floor(b / every) + 1) * every - b
+            # One cue just passed (if within 16 beats) and the next three.
+            first = math.floor(b / every)
+            for i in range(first, first + 4):
+                ahead = i * every - b
+                if ahead >= -16 and i >= 0:
+                    upcoming.append((i % 8, ahead))
         return encode_state(self.id, self.seq, self.playing, self.mode, self.bpm,
-                            b - math.floor(b), math.floor(b), t, playing_for, True, cue)
+                            b - math.floor(b), math.floor(b), t, playing_for, True, cue,
+                            upcoming[:8])
 
 
 def run_players(specs, port, broadcast, skew_ms, jitter_ms, loss, duration=None, quiet=False,

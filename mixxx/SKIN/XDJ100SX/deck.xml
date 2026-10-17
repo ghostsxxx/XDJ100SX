@@ -36,8 +36,23 @@
                                   </Children> 
                             </WidgetGroup>
                   
-                          <!--Separador-->
-                           <WidgetGroup><Size>30f,95f</Size></WidgetGroup>
+                          <!-- Set bar 1: touch on a downbeat; that beat becomes beat 1
+                               of the bar (XDJ network sync, grid saved with the track). -->
+                          <WidgetGroup>
+                            <Layout>vertical</Layout>
+                            <Size>72f,40max</Size>
+                            <Children>
+                              <PushButton>
+                                <ObjectName>SetDownbeatButton</ObjectName>
+                                <Size>56f,40f</Size>
+                                <NumberStates>1</NumberStates>
+                                <State><Number>0</Number><Text>BAR 1</Text></State>
+                                <Connection>
+                                  <ConfigKey>[XdjSync],set_downbeat</ConfigKey>
+                                </Connection>
+                              </PushButton>
+                            </Children>
+                          </WidgetGroup>
 
 
                           <!-- Segona columna (BUTTON MODE)-->

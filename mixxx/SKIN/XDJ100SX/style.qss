@@ -665,40 +665,25 @@ font-size:25px;
   background-color:#585858;
 }
 /************************************************************************/
-/*     Network sync phase meter (phasemeter.xml)                        */
+/*     Network sync panel (phasemeter.xml)                              */
 /************************************************************************/
 
-#PhaseStrip {
+#SyncPanel {
   margin-bottom: 4px;
 }
 
-#PhaseTitle {
-  color: #9a9aa6;
-  font-size: 10px;
-  padding-right: 8px;
-}
-
-#PhaseNoReference {
-  color: #5a5a66;
-  font-size: 10px;
-  background-color: #1a1a20;
-  border-radius: 2px;
-  qproperty-alignment: 'AlignCenter';
-}
-
-#PhaseOffsetMs {
-  color: #e5e6ea;
-  font-size: 14px;
-  qproperty-alignment: 'AlignRight | AlignVCenter';
+#SyncButtons {
+  qproperty-layoutAlignment: 'AlignRight | AlignVCenter';
 }
 
 #SyncButton,
 #MasterIndicator {
-  font-size: 12px;
-  font-weight: 600;
-  margin-right: 6px;
-  color: #5a5a66;
-  border-color: #5a5a66;
+  font-size: 15px;
+  font-weight: 700;
+  margin-left: 8px;
+  color: #6b6b78;
+  border: 2px solid #6b6b78;
+  border-radius: 3px;
 }
 
 #SyncButton[displayValue="1"] {
@@ -706,72 +691,20 @@ font-size:25px;
   border-color: #6ee128;
 }
 
+#MasterIndicator {
+  color: #3a3a44;
+  border-color: #3a3a44;
+}
+
 #MasterIndicator[displayValue="1"] {
   color: #eb870f;
   border-color: #eb870f;
 }
 
-#BarMeter {
-  margin-right: 8px;
-}
-
-#BarBoxRef, #BarBoxRefDownbeat,
-#BarBoxOwn, #BarBoxOwnDownbeat {
-  margin: 1px;
-  border: 1px solid #5a5a66;
-  border-radius: 1px;
-  background-color: transparent;
-}
-
-#BarBoxRefDownbeat, #BarBoxOwnDownbeat {
-  border-color: #9a9aa6;
-}
-
-#BarBoxRef[displayValue="1"], #BarBoxRefDownbeat[displayValue="1"] {
-  background-color: #eb870f;
-  border-color: #eb870f;
-}
-
-#BarBoxOwn[displayValue="1"], #BarBoxOwnDownbeat[displayValue="1"] {
-  background-color: #e5e6ea;
-  border-color: #e5e6ea;
-}
-
-#CountdownRow {
-  margin-top: 2px;
-}
-
-#CountdownTitle {
-  color: #9a9aa6;
-  font-size: 10px;
-  padding-right: 6px;
-}
-
-#CountdownValue {
-  color: #e5e6ea;
-  font-size: 15px;
-}
-
-#CountdownUnit {
-  color: #9a9aa6;
-  font-size: 10px;
-  padding-left: 4px;
-}
-
-#CountdownNone {
-  color: #5a5a66;
-  font-size: 15px;
-}
-
-#BeatsOffInBar {
-  color: #d73535;
-  font-size: 13px;
-  qproperty-alignment: 'AlignRight | AlignVCenter';
-}
-
 #SetDownbeatButton {
-  font-size: 10px;
-  margin-right: 8px;
-  color: #9a9aa6;
-  border-color: #5a5a66;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b4b4c0;
+  border: 2px solid #6b6b78;
+  border-radius: 3px;
 }
