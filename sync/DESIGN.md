@@ -87,7 +87,7 @@ below 0.2 ms, so no drift model in v1.
 | Clock offset estimator | `clockestimator.*` | done, tested |
 | Peer table, reference choice (D7), timeout | `peertable.*` | done, tested |
 | UDP transport on own thread, `[XdjSync]` controls | `xdjsyncservice.*` | done, verified against simulator |
-| Engine phase snapshot at DAC time (D5) | `enginephase.*`, hooks in `sounddeviceportaudio.cpp`, `enginemixer.cpp` | done, tested; playing accuracy not yet measured |
+| Engine phase snapshot at DAC time (D5) | `enginephase.*`, hooks in `sounddeviceportaudio.cpp`, `enginemixer.cpp` | done, tested; playing on one Mac: offset jitter 0.01–0.02 ms std dev, consistent with independent monitor (±0.03 ms). Audible accuracy not yet measured. |
 | Skin phase strip | XDJ100SX `phasemeter.xml`, `images/phase/` | done, not yet checked visually |
 
 Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
