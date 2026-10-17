@@ -32,6 +32,9 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D10 | LAN only, no authentication. | DJ booth network; accepted risk. |
 | D11 | No half/double tempo matching (e.g. 174 vs 87 BPM). | The DJ keeps one consistent BPM analysis strategy across players. |
 | D12 | "In sync" = offset ≤ 5 ms and not drifting. | Well below an audible flam (~10 ms), margin for display accuracy. |
+| D14 | Tempo sync (v2): in BPM or BEAT mode the network thread sets `[Channel1],bpm` to the reference BPM whenever they differ by ≥ 0.0005 BPM; Mixxx turns it into a rate change. Not via Mixxx's sync engine. | Mixxx's sync only aligns phase with quantize on, so it can't separate tempo-only from beat sync. Revisit for v3. |
+| D15 | While following, the pitch fader is overridden, and the tempo may go beyond the pitch range. | Same as Pioneer sync and Mixxx's own sync. |
+| D16 | `sync_mode` is persistent; skin has a mode button cycling FREE/BPM/BEAT/MASTER (hardware buttons later map to the same control). | Usable and testable before the hardware exists. |
 | D13 | Skin: slim phase strip under the waveform: center-zero meter (right = ahead, edges = ±½ beat), green when in sync, orange otherwise, offset in ms. | Readable at a glance like Pioneer's phase meter; fits the 800×480 screen. |
 
 ## Non-functional requirements
@@ -88,7 +91,8 @@ below 0.2 ms, so no drift model in v1.
 | Peer table, reference choice (D7), timeout | `peertable.*` | done, tested |
 | UDP transport on own thread, `[XdjSync]` controls | `xdjsyncservice.*` | done, verified against simulator |
 | Engine phase snapshot at DAC time (D5) | `enginephase.*`, hooks in `sounddeviceportaudio.cpp`, `enginemixer.cpp` | done, tested; playing on one Mac: offset jitter 0.01–0.02 ms std dev, consistent with independent monitor (±0.03 ms). Audible accuracy not yet measured. |
-| Skin phase strip | XDJ100SX `phasemeter.xml`, `images/phase/` | done, not yet checked visually |
+| Tempo sync (v2, BPM mode) | `tempofollow.*` | done, tested; follows master tempo changes (verified 128 → 130.5 → 124 → 150) |
+| Skin phase strip | XDJ100SX `phasemeter.xml`, `images/phase/` | done, checked visually; mode button added |
 
 Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
 (`util/fpclassify.h`), never `std::isfinite`, and don't build NaN/Inf
@@ -107,7 +111,7 @@ constants in code or tests.
   3 master; settable), `peer_count`, `ref_present`, `ref_offset_valid`,
   `ref_offset_ms`, `ref_phase` (0..1, 0.5 = aligned), `ref_in_sync`, `ref_bpm`,
   `ref_bpm_delta`, `ref_drifting`, `ref_clock_uncertainty_ms`. Always present;
-  networking only runs if enabled.
+  networking only runs if enabled. `sync_mode` is persistent.
 - XDJ100SX skin (`mixxx/SKIN/XDJ100SX/deck.xml`): indicator next to `DeckBPM`.
 
 ## Phase timing (D5)

@@ -691,3 +691,21 @@ font-size:25px;
   font-size: 14px;
   qproperty-alignment: 'AlignRight | AlignVCenter';
 }
+
+#SyncModeButton {
+  font-size: 10px;
+  margin-right: 8px;
+  color: #9a9aa6;
+  border-color: #5a5a66;
+}
+
+#SyncModeButton[displayValue="1"],
+#SyncModeButton[displayValue="2"] {
+  color: #6ee128;
+  border-color: #6ee128;
+}
+
+#SyncModeButton[displayValue="3"] {
+  color: #eb870f;
+  border-color: #eb870f;
+}

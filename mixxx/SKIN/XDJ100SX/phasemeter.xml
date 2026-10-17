@@ -10,6 +10,20 @@
     <Size>me,20f</Size>
     <Children>
 
+      <!-- Sync mode; click cycles. Hardware buttons will map to the same control. -->
+      <PushButton>
+        <ObjectName>SyncModeButton</ObjectName>
+        <Size>60f,18f</Size>
+        <NumberStates>4</NumberStates>
+        <State><Number>0</Number><Text>FREE</Text></State>
+        <State><Number>1</Number><Text>BPM</Text></State>
+        <State><Number>2</Number><Text>BEAT</Text></State>
+        <State><Number>3</Number><Text>MASTER</Text></State>
+        <Connection>
+          <ConfigKey>[XdjSync],sync_mode</ConfigKey>
+        </Connection>
+      </PushButton>
+
       <Label>
         <ObjectName>PhaseTitle</ObjectName>
         <Text>PHASE</Text>
