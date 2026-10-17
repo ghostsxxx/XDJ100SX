@@ -267,6 +267,39 @@ def wifi_jitter_loss(run):
 
 
 @scenario
+def master_beat_jump(run):
+    """Quantized beat jump on the master: 6 beats, so the bar is off by 2."""
+    run.master.anchor_beat += 6
+    run.wait(4)
+
+
+@scenario
+def master_hot_cue(run):
+    """Non-quantized hot cue on the master: 6.37 beats."""
+    run.master.anchor_beat += 6.37
+    run.wait(4)
+
+
+@scenario
+def master_new_track(run):
+    """The master loads another track and plays it from its start."""
+    run.master.anchor_ns = xdjsim.now_ns()
+    run.master.anchor_beat = -0.6  # just before its first downbeat
+    run.wait(5)
+
+
+@scenario
+def reconnect_bar_off(run):
+    """During a 3 s drop the master beat-jumps one beat."""
+    run.master.sending = False
+    run.wait(1.0)
+    run.master.anchor_beat += 1
+    run.wait(2.0)
+    run.master.sending = True
+    run.wait(5)
+
+
+@scenario
 def follower_nudge(run):
     """The DJ nudges player1 with the jog wheel: the new offset must stay."""
     for _ in range(3):

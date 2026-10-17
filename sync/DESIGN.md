@@ -43,6 +43,7 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D22 | UI = CDJ-3000-style beat lanes (`<XdjBeatLanes>`, native widget `WXdjBeatLanes`): master lane on top, own lane below, one time axis around a shared playhead, beat ticks, numbered bars, red hot cue flags, fixed-width bars.beat countdown per lane; SYNC/MASTER right; BAR 1 next to Q. Replaces the separate bar meter, phase slider, ms readout and countdown row. Master sends up to 8 hot cues (16 beats behind to ahead) for its lane (appended field). | One picture for phase, beat-in-bar and tempo offset (ticks not lining up); numbers don't jump. Design: claude.ai artifact "XDJ100SX Sync Panel". |
 | D23 | Phase correction Mixxx-style (replaces D17's jumps): one beat jump only when sync engages (SYNC on, play start, a different master); afterwards tempo only: trim = −offset / 1 s, max ±5 % (full 5 % beyond 0.2 beat); deadband 0.5 ms. Same master back after a network drop: caught up by tempo. A DJ nudge on the follower (jog via `[XdjSync],nudge` from the controller script, or `rate_temp_*`) is kept as an intentional in-beat offset until sync engages again. | How Mixxx syncs its own decks (verified in `BpmControl::calcSyncAdjustment`); CDJs and Traktor also jump only on engage. No audible jumps from network blips or master nudges. |
 | D24 | Pitch fader (XDJ100SX script): ignored while following a master; afterwards (SYNC off, or this player became master) it is locked until it crosses the current tempo (or comes within 0.01 of it), then takes over. SYNC is also on MIDI note 0x4A for the test harness (not on the hardware). | No tempo jump when touching the fader after sync, like a CDJ. Mixxx's soft takeover can't be used: it never sees the ignored fader values. Verified: largest tempo step at takeover 0.13 BPM (one fader step). |
+| D25 | Bar re-alignment: a jump of the master's position (> ¼ beat from its projected previous state: cue, beat jump, new track) counts as a master change → one jump to the master's beat and bar. Same master back after a drop with the bar off → whole-beat jump only (in-beat offset by tempo). A beat jump the DJ does on the follower is kept. Reordered state packets are dropped (sequence number; big step back = restarted sender). | Bars matter (phrase mixing), and a whole-beat error can't be closed by tempo. |
 | D13 | Skin: slim phase strip under the waveform: center-zero meter (right = ahead, edges = ±½ beat), green when in sync, orange otherwise, offset in ms. | Readable at a glance like Pioneer's phase meter; fits the 800×480 screen. |
 
 ## Non-functional requirements
@@ -190,11 +191,17 @@ phase.
 | drop 5 s, reconnect 25 ms off | 26.0 ms | 0.6 ms | – |
 | 8 ms jitter, 20 % loss | 0.6 ms | 0.4 ms | – |
 | DJ nudges the follower (jog) | 25.5 ms | 18.0 ms (kept) | – |
+| master beat jump 6 beats (bar off by 2) | 0.4 ms | 0.02 ms | 1 (−2.00) |
+| master hot cue, not quantized | 173 ms | 0.5 ms | 1 (−1.63) |
+| master loads a new track | 209 ms | 0.07 ms | 1 (+0.45) |
+| master beat-jumps 1 beat during a 3 s drop | 0.06 ms | 0.02 ms | 1 (+1.00, on reconnect) |
 
-(D23 behavior. Before it, master nudges > 20 ms and reconnects caused one
-jump each.)
+(D23/D25 behavior. Before D23, master nudges > 20 ms and reconnects caused
+one jump each. "Worst" for master jumps is the moment before the follower
+reacts.)
 
-Wrong beat in the bar: never. During a drop longer than 1 s the follower
+Wrong beat in the bar: only for ~50 ms after a master jump, and during a
+drop in which the master jumped. During a drop longer than 1 s the follower
 elects itself master (still playing at the last tempo); on reconnect the
 longest-playing player wins again and the follower catches up by tempo.
 
