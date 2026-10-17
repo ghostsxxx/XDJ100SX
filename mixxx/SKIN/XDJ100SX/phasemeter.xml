@@ -1,9 +1,15 @@
 <!--
-  XDJ network sync: beat phase of this player against the reference player.
-  Center = beats aligned, right = this player ahead, left = behind,
-  edges = half a beat. Green when in sync. See sync/DESIGN.md.
+  XDJ network sync panel. Row 1: SYNC, MASTER, bar meter and beat phase
+  against the reference (master). Phase meter: center = beats aligned, right =
+  this player ahead, left = behind, edges = half a beat; green when in sync.
+  Row 2: cue countdowns. See sync/DESIGN.md.
 -->
 <Template>
+  <WidgetGroup>
+    <ObjectName>SyncPanel</ObjectName>
+    <Layout>vertical</Layout>
+    <Size>me,52f</Size>
+    <Children>
   <WidgetGroup>
     <ObjectName>PhaseStrip</ObjectName>
     <Layout>horizontal</Layout>
@@ -32,6 +38,136 @@
         <Connection>
           <ConfigKey>[XdjSync],master</ConfigKey>
           <ConnectValueFromWidget>false</ConnectValueFromWidget>
+        </Connection>
+      </PushButton>
+
+      <!-- Bar meter (4/4), CDJ-style: top row = reference (master), bottom
+           row = this player. Lit box = current beat of the bar. -->
+      <WidgetGroup>
+        <ObjectName>BarMeter</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>96f,28f</Size>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>BarRow</ObjectName>
+            <Layout>horizontal</Layout>
+            <Children>
+              <PushButton>
+                <ObjectName>BarBoxRefDownbeat</ObjectName>
+                <Size>20f,10f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text></Text></State>
+                <State><Number>1</Number><Text></Text></State>
+                <Connection>
+                  <ConfigKey>[XdjSync],ref_bar_beat</ConfigKey>
+                  <Transform><IsEqual>1</IsEqual></Transform>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+              <PushButton>
+                <ObjectName>BarBoxRef</ObjectName>
+                <Size>20f,10f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text></Text></State>
+                <State><Number>1</Number><Text></Text></State>
+                <Connection>
+                  <ConfigKey>[XdjSync],ref_bar_beat</ConfigKey>
+                  <Transform><IsEqual>2</IsEqual></Transform>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+              <PushButton>
+                <ObjectName>BarBoxRef</ObjectName>
+                <Size>20f,10f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text></Text></State>
+                <State><Number>1</Number><Text></Text></State>
+                <Connection>
+                  <ConfigKey>[XdjSync],ref_bar_beat</ConfigKey>
+                  <Transform><IsEqual>3</IsEqual></Transform>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+              <PushButton>
+                <ObjectName>BarBoxRef</ObjectName>
+                <Size>20f,10f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text></Text></State>
+                <State><Number>1</Number><Text></Text></State>
+                <Connection>
+                  <ConfigKey>[XdjSync],ref_bar_beat</ConfigKey>
+                  <Transform><IsEqual>4</IsEqual></Transform>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+            </Children>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>BarRow</ObjectName>
+            <Layout>horizontal</Layout>
+            <Children>
+              <PushButton>
+                <ObjectName>BarBoxOwnDownbeat</ObjectName>
+                <Size>20f,10f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text></Text></State>
+                <State><Number>1</Number><Text></Text></State>
+                <Connection>
+                  <ConfigKey>[XdjSync],bar_beat</ConfigKey>
+                  <Transform><IsEqual>1</IsEqual></Transform>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+              <PushButton>
+                <ObjectName>BarBoxOwn</ObjectName>
+                <Size>20f,10f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text></Text></State>
+                <State><Number>1</Number><Text></Text></State>
+                <Connection>
+                  <ConfigKey>[XdjSync],bar_beat</ConfigKey>
+                  <Transform><IsEqual>2</IsEqual></Transform>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+              <PushButton>
+                <ObjectName>BarBoxOwn</ObjectName>
+                <Size>20f,10f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text></Text></State>
+                <State><Number>1</Number><Text></Text></State>
+                <Connection>
+                  <ConfigKey>[XdjSync],bar_beat</ConfigKey>
+                  <Transform><IsEqual>3</IsEqual></Transform>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+              <PushButton>
+                <ObjectName>BarBoxOwn</ObjectName>
+                <Size>20f,10f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text></Text></State>
+                <State><Number>1</Number><Text></Text></State>
+                <Connection>
+                  <ConfigKey>[XdjSync],bar_beat</ConfigKey>
+                  <Transform><IsEqual>4</IsEqual></Transform>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+
+      <!-- Touch on the downbeat: that beat becomes beat 1 of the bar (Mixxx's
+           analyzer doesn't detect downbeats). Saved with the track's grid. -->
+      <PushButton>
+        <ObjectName>SetDownbeatButton</ObjectName>
+        <Size>48f,28f</Size>
+        <NumberStates>1</NumberStates>
+        <State><Number>0</Number><Text>BAR 1</Text></State>
+        <Connection>
+          <ConfigKey>[XdjSync],set_downbeat</ConfigKey>
         </Connection>
       </PushButton>
 
@@ -133,6 +269,113 @@
         </Children>
       </WidgetGroup>
 
+    </Children>
+  </WidgetGroup>
+
+  <!-- Cue countdown (bars.beat to the next hot/main cue), own and master's,
+       plus whole beats off in the bar. -->
+  <WidgetGroup>
+    <ObjectName>CountdownRow</ObjectName>
+    <Layout>horizontal</Layout>
+    <Size>me,20f</Size>
+    <Children>
+      <WidgetGroup>
+        <ObjectName>OwnCountdown</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>200f,20f</Size>
+        <Children>
+          <Label>
+            <ObjectName>CountdownTitle</ObjectName>
+            <Text>CUE</Text>
+          </Label>
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <Children>
+              <Number>
+                <ObjectName>CountdownValue</ObjectName>
+                <NumberOfDigits>0</NumberOfDigits>
+                <Connection><ConfigKey>[XdjSync],cue_countdown_bars</ConfigKey></Connection>
+              </Number>
+              <Label><ObjectName>CountdownValue</ObjectName><Text>.</Text></Label>
+              <Number>
+                <ObjectName>CountdownValue</ObjectName>
+                <NumberOfDigits>0</NumberOfDigits>
+                <Connection><ConfigKey>[XdjSync],cue_countdown_beat</ConfigKey></Connection>
+              </Number>
+              <Label><ObjectName>CountdownUnit</ObjectName><Text>BARS</Text></Label>
+            </Children>
+            <Connection>
+              <ConfigKey>[XdjSync],cue_countdown_valid</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <Label>
+            <ObjectName>CountdownNone</ObjectName>
+            <Text>--.-</Text>
+            <Connection>
+              <ConfigKey>[XdjSync],cue_countdown_valid</ConfigKey>
+              <BindProperty>visible</BindProperty>
+              <Transform><Not/></Transform>
+            </Connection>
+          </Label>
+        </Children>
+      </WidgetGroup>
+      <WidgetGroup>
+        <ObjectName>RefCountdown</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>200f,20f</Size>
+        <Children>
+          <Label>
+            <ObjectName>CountdownTitle</ObjectName>
+            <Text>MASTER CUE</Text>
+          </Label>
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <Children>
+              <Number>
+                <ObjectName>CountdownValue</ObjectName>
+                <NumberOfDigits>0</NumberOfDigits>
+                <Connection><ConfigKey>[XdjSync],ref_cue_countdown_bars</ConfigKey></Connection>
+              </Number>
+              <Label><ObjectName>CountdownValue</ObjectName><Text>.</Text></Label>
+              <Number>
+                <ObjectName>CountdownValue</ObjectName>
+                <NumberOfDigits>0</NumberOfDigits>
+                <Connection><ConfigKey>[XdjSync],ref_cue_countdown_beat</ConfigKey></Connection>
+              </Number>
+              <Label><ObjectName>CountdownUnit</ObjectName><Text>BARS</Text></Label>
+            </Children>
+            <Connection>
+              <ConfigKey>[XdjSync],ref_cue_countdown_valid</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <Label>
+            <ObjectName>CountdownNone</ObjectName>
+            <Text>--.-</Text>
+            <Connection>
+              <ConfigKey>[XdjSync],ref_cue_countdown_valid</ConfigKey>
+              <BindProperty>visible</BindProperty>
+              <Transform><Not/></Transform>
+            </Connection>
+          </Label>
+        </Children>
+      </WidgetGroup>
+      <Number>
+        <ObjectName>BeatsOffInBar</ObjectName>
+        <Size>me,20f</Size>
+        <NumberOfDigits>0</NumberOfDigits>
+        <Text>%1 BEAT</Text>
+        <Connection>
+          <ConfigKey>[XdjSync],ref_beats_off</ConfigKey>
+        </Connection>
+        <Connection>
+          <ConfigKey>[XdjSync],ref_beats_off</ConfigKey>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </Number>
+    </Children>
+  </WidgetGroup>
     </Children>
   </WidgetGroup>
 </Template>

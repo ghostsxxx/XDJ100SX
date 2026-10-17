@@ -37,6 +37,9 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D16 | SYNC is one on/off toggle on the touchscreen (`[XdjSync],sync`, persistent); MASTER is a lit indicator (`[XdjSync],master`), not a button. No hardware mapping (all CDJ-100S buttons are in use). Sync type via config `[XdjSync] SyncType` = `beat` (default) or `bpm`. | Like Pioneer CDJs: press SYNC, master is automatic. The XDJ100SX screen is a touchscreen. |
 | D17 | Beat sync (v3), BEAT mode, only while both play and clock uncertainty ≤ 5 ms: offset > 20 ms → fractional `beatjump` by −offset (≤ every 500 ms); 0.5–20 ms → tempo trim `ref × (1 − offset_s / 2 s)`, max ±0.5 %; < 0.5 ms → exact reference tempo. In-sync indicator ignores the trim's tempo difference. | Snap like Pioneer when engaging; smooth, inaudible correction after. Not via Mixxx's sync engine (D14). Beat jump inside an active loop moves the loop (Mixxx behavior). |
 | D18 | Automatic master: the player (any mode) that has been playing longest with a known tempo. Start time on each player's clock = arrival time − `playingFor` (state packet field, appended). Starts within 100 ms count as simultaneous → lowest player id. Master stops or disappears → next-longest player takes over. | Every player computes the same master from shared state, no voting. Stable: changes only when the master stops; the new master already runs at the old master's tempo. |
+| D19 | Bars: 4/4 always, counted from the beatgrid's first marker. Beat index sent with the state (flag bit 1 = valid). Offset reported as whole beats off in the bar plus the in-beat offset; BEAT sync aligns beat 1 on beat 1 by default (config `SyncAlign` = `bar`/`beat`). In-sync requires the same beat in the bar. | DJ cares about bars, not single beats (phrase mixing). |
+| D20 | "BAR 1" touch button re-anchors the loaded track's grid by whole beats so the beat nearest the play position is bar beat 1; saved with the grid. Constant-tempo grids only. | Mixxx's analyzer doesn't detect downbeats (on the click track it anchored on the 2nd beat). |
+| D21 | Cue countdown: bars.beat (CDJ-style, remaining beats rounded up) to the next **hot cue** ahead; own and the reference's (sent as beats at `atDac`, appended field, projected on the receiver). Main cue, intro/outro and sound markers are ignored. | Phrase mixing: see how far away the next drop is on both decks. Main cue etc. sit at the track start in Mixxx. |
 | D13 | Skin: slim phase strip under the waveform: center-zero meter (right = ahead, edges = ±½ beat), green when in sync, orange otherwise, offset in ms. | Readable at a glance like Pioneer's phase meter; fits the 800×480 screen. |
 
 ## Non-functional requirements
@@ -97,6 +100,7 @@ below 0.2 ms, so no drift model in v1.
 | Tempo sync (v2, BPM mode) | `tempofollow.*` | done, tested; follows master tempo changes (verified 128 → 130.5 → 124 → 150) |
 | Beat sync (v3, BEAT mode) | `phasefollower.*` | done, tested; verified vs simulator: −175 ms snap → 0 in < 1 s; 10 ms trimmed with ~2 s time constant to ≤ 0.5 ms; 60 ms snap → −0.02 ms |
 | Audible accuracy | `sync/devenv/measure_audible.sh` | measured on the Mac (2 Mixxx → BlackHole, 48 kHz, 512-frame buffers): one player in BEAT following the other, audible offset −0.38 ms median (worst 1.0 ms) while the display shows −0.02 ms |
+| Bars + cue countdown (D19–D21) | `beatphase.*`, `countdown.*`, `gridposition.*`, skin bar meter / countdown row / BAR 1 | done, tested; verified vs simulator (cue every 16 bars) |
 | Skin phase strip | XDJ100SX `phasemeter.xml`, `images/phase/` | done, checked visually; mode button added |
 
 Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
@@ -162,6 +166,12 @@ Test levels:
 5. Ground truth on hardware: record two Pi outputs into one stereo interface,
    measure onset offset, compare with display.
 6. Pi performance: xruns and CPU with feature on/off.
+
+## Backlog
+
+- Choose which cue the countdown counts to (not always the next one).
+- Rekordbox cue/grid compatibility (memory cues, downbeats from Rekordbox
+  analysis).
 
 ## Open questions
 

@@ -31,6 +31,7 @@ cmake -S "$MIXXX_DIR" -B "$BUILD_DIR" -G Ninja \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_TOOLCHAIN_FILE="$MIXXX_VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
     -DBUILD_TESTING="$BUILD_TESTS" \
+    -DBUILD_BENCH=OFF \
     -DQML=OFF
 
 cmake --build "$BUILD_DIR" --parallel ${TARGET:+--target "$TARGET"}

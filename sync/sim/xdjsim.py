@@ -47,10 +47,12 @@ def _id(player_id):
 
 
 def encode_state(pid, seq, playing, mode, bpm, beat_distance, beat_index, at_dac_ns,
-                 playing_for_ns=0):
+                 playing_for_ns=0, beat_index_valid=False, cue_countdown_beats=None):
+    flags = (1 if playing else 0) | (2 if beat_index_valid else 0)
     return (MAGIC + struct.pack("<BB", VERSION, T_STATE) + _id(pid) +
-            struct.pack("<IBBddqqq", seq, 1 if playing else 0, mode, bpm,
-                        beat_distance, beat_index, at_dac_ns, playing_for_ns))
+            struct.pack("<IBBddqqqd", seq, flags, mode, bpm, beat_distance, beat_index,
+                        at_dac_ns, playing_for_ns,
+                        -1.0 if cue_countdown_beats is None else cue_countdown_beats))
 
 
 def encode_ping(pid, seq, sent_ns):
@@ -88,11 +90,13 @@ def decode(data):
             seq, flags, mode, bpm, bd, bi, at = struct.unpack_from("<IBBddqq", data, off)
             off += struct.calcsize("<IBBddqq")
             playing_for = struct.unpack_from("<q", data, off)[0] if len(data) >= off + 8 else 0
+            cue = struct.unpack_from("<d", data, off + 8)[0] if len(data) >= off + 16 else -1.0
             if not (math.isfinite(bpm) and bpm >= 0 and math.isfinite(bd)) or mode > 3:
                 return None
             return T_STATE, dict(id=pid, seq=seq, playing=bool(flags & 1), mode=mode,
                                  bpm=bpm, beat_distance=bd, beat_index=bi, at_dac=at,
-                                 playing_for=playing_for)
+                                 playing_for=playing_for, beat_index_valid=bool(flags & 2),
+                                 cue_countdown=None if cue < 0 else cue)
         if ptype == T_PING:
             seq, sent = struct.unpack_from("<Iq", data, off)
             return T_PING, dict(id=pid, seq=seq, sent=sent)
@@ -192,6 +196,7 @@ class VirtualPlayer:
         self.playing = True
         self.seq = 0
         self.playing_since_ns = now_ns()
+        self.cue_every_bars = 0
 
     def clock(self):
         return now_ns() + self.skew_ns
@@ -208,18 +213,23 @@ class VirtualPlayer:
         b = self.beats(t)
         self.seq += 1
         playing_for = now_ns() - self.playing_since_ns if self.playing else 0
+        cue = None
+        if self.cue_every_bars:
+            every = 4 * self.cue_every_bars
+            cue = (math.floor(b / every) + 1) * every - b
         return encode_state(self.id, self.seq, self.playing, self.mode, self.bpm,
-                            b - math.floor(b), math.floor(b), t, playing_for)
+                            b - math.floor(b), math.floor(b), t, playing_for, True, cue)
 
 
 def run_players(specs, port, broadcast, skew_ms, jitter_ms, loss, duration=None, quiet=False,
-                paused=False, playing_for_s=0.0):
+                paused=False, playing_for_s=0.0, cue_every_bars=0):
     sock = make_socket(port)
     sched = Scheduler(sock)
     players = [VirtualPlayer(s, skew_ms * i) for i, s in enumerate(specs)]
     for p in players:
         p.playing = not paused
         p.playing_since_ns -= int(playing_for_s * 1e9)
+        p.cue_every_bars = cue_every_bars
     ids = {p.id: p for p in players}
 
     def send(data):
@@ -308,9 +318,12 @@ class Monitor:
                 continue
             est = self.clocks.get(pid, Clock()).estimate()
             clock = f"clock {est[0] / 1e6:+10.3f} ms ±{est[1] / 2e6:.3f}" if est else "clock  -"
+            bar = f"beat {state['beat_index'] % 4 + 1}" if state["beat_index_valid"] else "beat -"
+            cue = state["cue_countdown"]
+            cue_s = f"cue {math.ceil(cue - 1e-6) // 4}.{math.ceil(cue - 1e-6) % 4}" if cue is not None else "cue -"
             lines.append(f"{pid:>10} {'play' if state['playing'] else 'stop'} "
                          f"{state['playing_for'] / 1e9:7.1f} s "
-                         f"{state['bpm']:8.3f} BPM mode {state['mode']}  {clock}")
+                         f"{state['bpm']:8.3f} BPM mode {state['mode']} {bar} {cue_s}  {clock}")
         for (a, b), ms in sorted(self.offsets().items()):
             lines.append(f"{a:>10} vs {b:<10} {ms:+8.2f} ms")
         return "\n".join(lines) if lines else "no players"
@@ -376,6 +389,8 @@ def main():
     p.add_argument("--loss", type=float, default=0.0, help="packet loss 0..1")
     p.add_argument("--playing-for-s", type=float, default=0.0,
                    help="pretend the players started this long ago (automatic master)")
+    p.add_argument("--cue-every-bars", type=int, default=0,
+                   help="send a cue countdown to a cue every N bars (phrases)")
     p.add_argument("--paused", action="store_true",
                    help="players paused at their phase (static offsets, for cross-checks)")
     sub.add_parser("monitor")
@@ -383,7 +398,8 @@ def main():
     args = ap.parse_args()
     if args.cmd == "players":
         run_players(args.player, args.port, args.broadcast, args.skew_ms, args.jitter_ms, args.loss,
-                    paused=args.paused, playing_for_s=args.playing_for_s)
+                    paused=args.paused, playing_for_s=args.playing_for_s,
+                    cue_every_bars=args.cue_every_bars)
     elif args.cmd == "monitor":
         run_monitor(args.port, args.broadcast)
     else:
