@@ -664,3 +664,30 @@ font-size:25px;
   border:none;
   background-color:#585858;
 }
+/************************************************************************/
+/*     Network sync phase meter (phasemeter.xml)                        */
+/************************************************************************/
+
+#PhaseStrip {
+  margin-bottom: 4px;
+}
+
+#PhaseTitle {
+  color: #9a9aa6;
+  font-size: 10px;
+  padding-right: 8px;
+}
+
+#PhaseNoReference {
+  color: #5a5a66;
+  font-size: 10px;
+  background-color: #1a1a20;
+  border-radius: 2px;
+  qproperty-alignment: 'AlignCenter';
+}
+
+#PhaseOffsetMs {
+  color: #e5e6ea;
+  font-size: 14px;
+  qproperty-alignment: 'AlignRight | AlignVCenter';
+}

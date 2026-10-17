@@ -1,0 +1,113 @@
+<!--
+  XDJ network sync: beat phase of this player against the reference player.
+  Center = beats aligned, right = this player ahead, left = behind,
+  edges = half a beat. Green when in sync. See sync/DESIGN.md.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>PhaseStrip</ObjectName>
+    <Layout>horizontal</Layout>
+    <Size>me,20f</Size>
+    <Children>
+
+      <Label>
+        <ObjectName>PhaseTitle</ObjectName>
+        <Text>PHASE</Text>
+      </Label>
+
+      <!-- Meter, or a placeholder while there is no offset -->
+      <WidgetGroup>
+        <ObjectName>PhaseMeter</ObjectName>
+        <Layout>stacked</Layout>
+        <Size>me,18f</Size>
+        <Children>
+
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <Size>me,18f</Size>
+            <Children>
+              <SliderComposed>
+                <ObjectName>PhaseNeedleInSync</ObjectName>
+                <Size>me,18f</Size>
+                <Slider scalemode="STRETCH">images/phase/meter_bg.svg</Slider>
+                <Handle>images/phase/needle_green.svg</Handle>
+                <Horizontal>true</Horizontal>
+                <BarColor>#6ee128</BarColor>
+                <BarWidth>4</BarWidth>
+                <BarAxisPos>9</BarAxisPos>
+                <BarUnipolar>false</BarUnipolar>
+                <Connection>
+                  <ConfigKey>[XdjSync],ref_phase</ConfigKey>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[XdjSync],ref_in_sync</ConfigKey>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </SliderComposed>
+              <SliderComposed>
+                <ObjectName>PhaseNeedleOff</ObjectName>
+                <Size>me,18f</Size>
+                <Slider scalemode="STRETCH">images/phase/meter_bg.svg</Slider>
+                <Handle>images/phase/needle_orange.svg</Handle>
+                <Horizontal>true</Horizontal>
+                <BarColor>#eb870f</BarColor>
+                <BarWidth>4</BarWidth>
+                <BarAxisPos>9</BarAxisPos>
+                <BarUnipolar>false</BarUnipolar>
+                <Connection>
+                  <ConfigKey>[XdjSync],ref_phase</ConfigKey>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[XdjSync],ref_in_sync</ConfigKey>
+                  <BindProperty>visible</BindProperty>
+                  <Transform><Not/></Transform>
+                </Connection>
+              </SliderComposed>
+            </Children>
+            <Connection>
+              <ConfigKey>[XdjSync],ref_offset_valid</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+
+          <Label>
+            <ObjectName>PhaseNoReference</ObjectName>
+            <Size>me,18f</Size>
+            <Text>NO REFERENCE</Text>
+            <Connection>
+              <ConfigKey>[XdjSync],ref_offset_valid</ConfigKey>
+              <BindProperty>visible</BindProperty>
+              <Transform><Not/></Transform>
+            </Connection>
+          </Label>
+
+        </Children>
+      </WidgetGroup>
+
+      <!-- Offset in ms, positive = this player ahead -->
+      <WidgetGroup>
+        <ObjectName>PhaseReadout</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>90f,18f</Size>
+        <Children>
+          <Number>
+            <ObjectName>PhaseOffsetMs</ObjectName>
+            <Size>90f,18f</Size>
+            <NumberOfDigits>1</NumberOfDigits>
+            <Text>%1 ms</Text>
+            <Connection>
+              <ConfigKey>[XdjSync],ref_offset_ms</ConfigKey>
+            </Connection>
+            <Connection>
+              <ConfigKey>[XdjSync],ref_offset_valid</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </Number>
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

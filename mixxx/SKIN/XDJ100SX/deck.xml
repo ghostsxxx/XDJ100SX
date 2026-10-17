@@ -5,7 +5,8 @@
     
     <Layout>vertical</Layout>
     <Children>
-     
+                  <Template src="skin:phasemeter.xml"/>
+
                   <WidgetGroup>
                     <ObjectName>DeckInfo</ObjectName>
                     <!--Primera fila de 5 columnes (quantize + button mode + temps + pitch + bpm)-->

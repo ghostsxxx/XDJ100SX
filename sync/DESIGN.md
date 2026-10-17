@@ -30,6 +30,9 @@ already be good enough for v3. The end goal is full sync; v1 is the first slice.
 | D8 | Transport: everything is UDP broadcast (port 51760), versioned binary packets. A ping is answered by every peer with a pong addressed by player id. | Multicast is unreliable on cheap switches and Pi WiFi. Unicast reaches only one of several players on the same machine (SO_REUSEPORT). Binary keeps packets small at 50 Hz. |
 | D9 | Feature off by default, enabled in preferences; player ID from preferences, default = hostname. | Upstream-friendly, no surprise network traffic. |
 | D10 | LAN only, no authentication. | DJ booth network; accepted risk. |
+| D11 | No half/double tempo matching (e.g. 174 vs 87 BPM). | The DJ keeps one consistent BPM analysis strategy across players. |
+| D12 | "In sync" = offset ≤ 5 ms and not drifting. | Well below an audible flam (~10 ms), margin for display accuracy. |
+| D13 | Skin: slim phase strip under the waveform: center-zero meter (right = ahead, edges = ±½ beat), green when in sync, orange otherwise, offset in ms. | Readable at a glance like Pioneer's phase meter; fits the 800×480 screen. |
 
 ## Non-functional requirements
 
@@ -85,7 +88,7 @@ below 0.2 ms, so no drift model in v1.
 | Peer table, reference choice (D7), timeout | `peertable.*` | done, tested |
 | UDP transport on own thread, `[XdjSync]` controls | `xdjsyncservice.*` | done, verified against simulator |
 | Engine snapshot at DAC time | | todo: phase sampled on the network thread for now |
-| Skin indicator | | todo |
+| Skin phase strip | XDJ100SX `phasemeter.xml`, `images/phase/` | done, not yet checked visually |
 
 Note: Mixxx compiles with `-ffast-math`; use `util_isfinite`/`util_isnan`
 (`util/fpclassify.h`), never `std::isfinite`, and don't build NaN/Inf
@@ -102,8 +105,9 @@ constants in code or tests.
   DAC times.
 - `[XdjSync]` controls: `enabled`, `sync_mode` (0 free, 1 bpm, 2 beat,
   3 master; settable), `peer_count`, `ref_present`, `ref_offset_valid`,
-  `ref_offset_ms`, `ref_bpm`, `ref_bpm_delta`, `ref_drifting`,
-  `ref_clock_uncertainty_ms`.
+  `ref_offset_ms`, `ref_phase` (0..1, 0.5 = aligned), `ref_in_sync`, `ref_bpm`,
+  `ref_bpm_delta`, `ref_drifting`, `ref_clock_uncertainty_ms`. Always present;
+  networking only runs if enabled.
 - XDJ100SX skin (`mixxx/SKIN/XDJ100SX/deck.xml`): indicator next to `DeckBPM`.
 
 ## Test harness (on the Mac, no hardware)
@@ -132,9 +136,6 @@ Test levels:
 
 ## Open questions
 
-- Half/double tempo: Mixxx analyzes a 174 BPM track as 87 BPM with default
-  settings. Compare phase modulo tempo ratio 2 (Pioneer-like), or require
-  matching BPM ranges? Dev tracks use 128 BPM until decided.
 
 - Packet rate: 50 or 100 Hz on a Pi 3B+ over WiFi?
 - Pitch-bend/jog nudges: how fast must the indicator react vs. how much to smooth?
